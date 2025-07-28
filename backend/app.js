@@ -14,19 +14,20 @@ const PORT = ENV.PORT || 8000;
 // GLOBAL MIDDLEWARE
 app.use(cors());
 app.use(express.json());
- // GLOBAL MIDDLEWARE
- app.use(cors());
- app.use(express.json());
- app.use(arcjetMiddleware)
+// GLOBAL MIDDLEWARE
+app.use(cors());
+app.use(express.json());
+app.use(arcjetMiddleware);
 
- // DEFAUT ROUTE
- app.get("/", (__, res) => res.json({ message: "Z-clone Api" }));
+// DEFAUT ROUTE
+app.get("/", (__, res) => res.json({ message: "Z-clone Api" }));
 
- // HEALTH ROUTE
- app.get("/health", (req, res) => res.json({ message: "Api is working fine" }));
+// HEALTH ROUTE
+app.get("/health", (req, res) => res.json({ message: "Api is working fine" }));
 
- // ERROR HANDLING MIDDLEWARE (must be last)
- app.use(errorMiddleware);app.use(arcjetMiddleware)
+// ERROR HANDLING MIDDLEWARE (must be last)
+app.use(errorMiddleware);
+app.use(arcjetMiddleware);
 
 // DEFAUT ROUTE
 app.get("/", (__, res) => res.json({ message: "Z-clone Api" }));
