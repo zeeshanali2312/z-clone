@@ -14,10 +14,7 @@ const PORT = ENV.PORT || 8000;
 // GLOBAL MIDDLEWARE
 app.use(cors());
 app.use(express.json());
-// GLOBAL MIDDLEWARE
-app.use(cors());
-app.use(express.json());
-app.use(arcjetMiddleware);
+
 
 // DEFAUT ROUTE
 app.get("/", (__, res) => res.json({ message: "Z-clone Api" }));

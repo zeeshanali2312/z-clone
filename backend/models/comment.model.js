@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
-const comemntSchema = new Schema(
+const commentSchema = new Schema(
   {
     //user,  post , content , like
     user: {
@@ -23,6 +23,6 @@ const comemntSchema = new Schema(
   { timestamps: true }
 );
 
-const Comment = mongoose.model("Comment", comemntSchema);
+const Comment = mongoose.model("Comment", commentSchema);
 
 export default Comment;
