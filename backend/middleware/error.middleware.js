@@ -5,6 +5,5 @@ export const errorMiddleware = (err, req, res, next) => {
 
   res.status(statusCode).json({
     success: false,
-    messagge: err.messagge || "Internal server error",
-  });
+    message: err.message || "Internal server error",  });
 };

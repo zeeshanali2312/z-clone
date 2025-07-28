@@ -9,13 +9,11 @@ const arcjetMiddleware = async (req, res, next) => {
       if (decision.reason.isRateLimit()) {
         return res.status(429).json({
           error: "Too many requests",
-          meesage: "Rate Limit Exceeded. Please try later",
-        });
+          message: "Rate Limit Exceeded. Please try later",        });
       } else if (decision.reason.isBot()) {
         return res.status(403).json({
           error: "Bot Access Denied",
-          meesage: "Automated requests are not allowed",
-        });
+          message: "Automated requests are not allowed",        });
       }
     } else {
       return res.status(403).json({
