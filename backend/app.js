@@ -6,6 +6,7 @@ import connectDB from "./config/db.js";
 import { ENV } from "./config/env.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
 import arcjetMiddleware from "./middleware/arcjet.middleware.js";
+import { clerkMiddleware } from "@clerk/express";
 
 // variables
 const app = express();
@@ -14,6 +15,7 @@ const PORT = ENV.PORT || 8000;
 // GLOBAL MIDDLEWARE
 app.use(cors());
 app.use(express.json());
+app.use(clerkMiddleware());
 
 
 // DEFAUT ROUTE
