@@ -7,6 +7,7 @@ import { ENV } from "./config/env.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
 import arcjetMiddleware from "./middleware/arcjet.middleware.js";
 import { clerkMiddleware } from "@clerk/express";
+import userRoutes from './routes/user.route.js';
 
 // variables
 const app = express();
@@ -23,6 +24,9 @@ app.get("/", (__, res) => res.json({ message: "Z-clone Api" }));
 
 // HEALTH ROUTE
 app.get("/health", (req, res) => res.json({ message: "Api is working fine" }));
+
+// ROUTES 
+app.use("/api/v1/users",userRoutes);
 
 // ERROR HANDLING MIDDLEWARE (must be last)
 app.use(errorMiddleware);
