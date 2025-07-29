@@ -1,4 +1,4 @@
-import { asyncHandler } from "express-async-handler";
+import  asyncHandler  from "express-async-handler";
 import { getAuth } from "@clerk/express";
 import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
