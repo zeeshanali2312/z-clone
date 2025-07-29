@@ -13,3 +13,5 @@ import { authMiddleware } from '../middleware/auth.middleware';
  router.post('/profile',authMiddleware,updateUserProfile);
  router.post('/sync',authMiddleware,syncUser);
  router.post('/follow/:targetUserId',followUser);
+
+ export default router;
