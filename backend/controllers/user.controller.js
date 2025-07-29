@@ -1,10 +1,10 @@
-import { asyncHandler } from "express-async-handler";
+import  asyncHandler  from "express-async-handler";
 import { getAuth, clerkClient } from "@clerk/express";
+import mongoose from "mongoose";
 
 // MY IMPORTS
-import CustomError from "../utils/custom.error";
+import CustomError from "../utils/custom.error.js";
 import User from "../models/user.model.js";
-import mongoose from "mongoose";
 
 export const getUserProfile = asyncHandler(async (req, res) => {
   // get username fronm frontend
