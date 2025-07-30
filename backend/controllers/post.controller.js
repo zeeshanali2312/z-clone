@@ -1,4 +1,4 @@
-import  asyncHandler  from "express-async-handler";
+import asyncHandler from "express-async-handler";
 import { getAuth } from "@clerk/express";
 import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
@@ -22,7 +22,7 @@ export const getAllPosts = asyncHandler(async (req, res) => {
   const posts = await Post.find()
     .sort({ createAt: -1 })
     .populate([
-      { path: "user", select: "username firstName lastName profilePicture " },
+      { path: "user", select: "username firstName lastName profilePicture" },
       {
         path: "comments",
         populate: {
@@ -30,7 +30,9 @@ export const getAllPosts = asyncHandler(async (req, res) => {
           select: "username firstName lastName profilePicture ",
         },
       },
-    ]);
+    ])
+    .lean();
+
   if (!posts) {
     throw new CustomError("no posts found ", 404);
   }
@@ -44,19 +46,21 @@ export const getPost = asyncHandler(async (req, res) => {
     throw new CustomError("post id not found", 404);
   }
   // find the post and send data to fe
-  const post = await Post.findById(postId).populate([
-    { path: "user", select: "username firstName lastName profilePicture " },
-    {
-      path: "comments",
-      populate: {
-        path: "user",
-        select: "username firstName lastName profilePicture",
+  const post = await Post.findById(postId)
+    .populate([
+      { path: "user", select: "username firstName lastName profilePicture " },
+      {
+        path: "comments",
+        populate: {
+          path: "user",
+          select: "username firstName lastName profilePicture",
+        },
       },
-    },
-  ]);
+    ])
+    .lean();
 
   if (!post) {
-    throw new CustomError("no post found");
+    throw new CustomError("no post found", 403);
   }
 
   res.status(200).json({ post });
@@ -68,7 +72,7 @@ export const getUserPosts = asyncHandler(async (req, res) => {
     throw new CustomError("username not found", 401);
   }
   // check if user exsits or not
-  const user = await User.findOne({ username });
+  const user = await User.findOne({ username }).lean();
   if (!user) {
     throw new CustomError("user not found");
   }
@@ -84,7 +88,8 @@ export const getUserPosts = asyncHandler(async (req, res) => {
           select: "username firstName lastName profilePicture",
         },
       },
-    ]);
+    ])
+    .lean();
 
   if (!posts) {
     throw new CustomError("no post found", 404);
@@ -93,10 +98,11 @@ export const getUserPosts = asyncHandler(async (req, res) => {
   // send the data to fe
   res.status(200).json({ posts });
 });
+
 export const createPost = asyncHandler(async (req, res) => {
   // get userId , file , content from fe
   const { userId } = getAuth(req);
-  const { imageFile } = req.file;
+  const imageFile = req.file;
   const { content } = req.body;
 
   // check for userid , if user is present or not
@@ -108,38 +114,37 @@ export const createPost = asyncHandler(async (req, res) => {
     throw new CustomError("userid not found");
   }
 
-  const user = await User.findOne({ clerkId: userId });
+  const user = await User.findOne({ clerkId: userId }).lean();
 
   if (!user) {
-    throw new CustomError("no user found ");
-    hr;
+    throw new CustomError("no user found ", 404);
   }
 
   // convert the image to base64  and upload it to cloudinary
   if (imageFile) {
     const base64Image = `data:${
       imageFile.mimetype
-    },base64,{${imageFile.buffer.toString("base64")}}`;
-  }
+    },base64,${imageFile.buffer.toString("base64")}`;
 
-  let imageUrl = "";
+    try {
+      let imageUrl = "";
 
-  try {
-    // get the image from cloudinary
-    const uploadResponse = await cloudinary.uploader.upload(base64Image, {
-      folder: "social_media_posts",
-      resource_type: "image",
-      transformation: [
-        { width: 800, height: 600, crop: "limit" },
-        { quality: "auto" },
-        { format: "auto" },
-      ],
-    });
+      // get the image from cloudinary
+      const uploadResponse = await cloudinary.uploader.upload(base64Image, {
+        folder: "social_media_posts",
+        resource_type: "image",
+        transformation: [
+          { width: 800, height: 600, crop: "limit" },
+          { quality: "auto" },
+          { format: "auto" },
+        ],
+      });
 
-    imageUrl = uploadResponse.secure_url;
-  } catch (error) {
-    console.error("cloudinary error", error);
-    res.status(400).json({ message: "falied to upload image" });
+      imageUrl = uploadResponse.secure_url;
+    } catch (error) {
+      console.error("cloudinary error", error);
+      res.status(400).json({ message: "falied to upload image" });
+    }
   }
 
   // save the data to db
@@ -151,6 +156,7 @@ export const createPost = asyncHandler(async (req, res) => {
   // send the data to frontend
   res.status(201).json({ post });
 });
+
 export const likePost = asyncHandler(async (req, res) => {
   const session = await mongoose.startSession();
 
@@ -162,11 +168,11 @@ export const likePost = asyncHandler(async (req, res) => {
     throw new CustomError("user or postid not given", 404);
   }
   // check if user and post both in bd
-  const user = await User.findOne({ clerkId });
-  const post = await Post.findById(postId);
+  const user = await User.findOne({ clerkId }).session(session);
+  const post = await Post.findById(postId).session(session);
 
   if (!user || !post) {
-    throw new Error("user or post not found");
+    throw new CustomError("user or post not found", 404);
   }
   const isLiked = post.likes.includes(user._id);
 
@@ -185,22 +191,24 @@ export const likePost = asyncHandler(async (req, res) => {
     } else {
       await Post.findByIdAndUpdate(
         postId,
-        { $push: { likes: user._id } },
+        { $addToSet: { likes: user._id } },
         { session }
       );
 
       // create notification if not self post
-      await Notification.create(
-        [
-          {
-            from: user._id,
-            to: post.user,
-            type: "like",
-            post: postId,
-          },
-        ],
-        { session }
-      );
+      if (user._id.toString() !== post.user.toString()) {
+        await Notification.create(
+          [
+            {
+              from: user._id,
+              to: post.user,
+              type: "like",
+              post: postId,
+            },
+          ],
+          { session }
+        );
+      }
     }
 
     session.commitTransaction();
@@ -214,6 +222,7 @@ export const likePost = asyncHandler(async (req, res) => {
     session.endSession();
   }
 });
+
 export const deletePost = asyncHandler(async (req, res) => {
   const session = await mongoose.startSession();
 
@@ -238,15 +247,15 @@ export const deletePost = asyncHandler(async (req, res) => {
   try {
     session.startTransaction();
     // delete related comments and then post
-    await Comment.deleteMany({ post: postId });
-    await Post.findByIdAndDelete(postId);
-    session.commitTransaction();
+    await Comment.deleteMany({ post: postId }).session(session);
+    await Post.findByIdAndDelete(postId).session(session);
+    await session.commitTransaction();
+    // send status to fe
+    res.status(200).json({ message: "post is deleted" });
   } catch (error) {
     console.error("transaction error", error);
-    session.abortTransaction();
+    await session.abortTransaction();
   } finally {
     session.endSession();
   }
-  // send status to fe
-  res.status(200).json({ message: "post is deleted" });
 });

@@ -63,12 +63,12 @@ export const syncUser = asyncHandler(async (req, res) => {
   // get data from clerk
   const { clerkId } = getAuth(req);
   if (!clerkId) {
-    throw new CustomError("clerkid not found", 404);
+    throw new CustomError("clerkid not found", 401);
   }
   // check if user is in db or not
   const existingUser = await User.findOne({ clerkId });
   if (existingUser) {
-    throw new CustomError("user already exsits", 400);
+    throw new CustomError("user already exsits", 409);
   }
 
   // create user in db if not found
@@ -96,10 +96,10 @@ export const followUser = asyncHandler(async (req, res) => {
 
   // get userid and targetid
   const { userId } = getAuth(req);
-  const targetId = req.params;
+  const {targetId} = req.params;
 
   if (!userId || !targetId) {
-    throw new Error("user not found", 404);
+    throw new CustomError("user not found", 404);
   }
   // check for both user and targetid
   const user = await User.findOne({ clerkId: userId });
@@ -121,9 +121,9 @@ export const followUser = asyncHandler(async (req, res) => {
       await User.findByIdAndUpdate(
         user._id,
         {
-          $pull: { followings: targetId },
+          $addToSet: { followings: targetId },
         },
-        { session }
+        { session  ,new:true}
       );
 
       await User.findByIdAndUpdate(
@@ -131,7 +131,7 @@ export const followUser = asyncHandler(async (req, res) => {
         {
           $pull: { followers: userId },
         },
-        { session }
+        { session ,new:true }
       );
     } else {
       // follow
@@ -140,7 +140,7 @@ export const followUser = asyncHandler(async (req, res) => {
         {
           $push: { followings: targetId },
         },
-        { session }
+        { session ,new:true}
       );
 
       await User.findByIdAndUpdate(
@@ -148,7 +148,7 @@ export const followUser = asyncHandler(async (req, res) => {
         {
           $push: { followers: user._id },
         },
-        { session }
+        { session ,new:true}
       );
 
       await Notification.create(
@@ -163,9 +163,11 @@ export const followUser = asyncHandler(async (req, res) => {
       );
     }
 
-    session.commitTransaction();
+   await session.commitTransaction();
   } catch (error) {
-    session.abortTransaction();
+    console.error("follow error",error);
+    
+   await session.abortTransaction();
   } finally {
     session.endSession();
   }

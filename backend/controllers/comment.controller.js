@@ -11,7 +11,7 @@ export const getComments = asyncHandler(async (req, res) => {
   // get postid from fe
   const { postId } = req.params;
   if (!postId) {
-    throw new CustomError("post id not found ", 404);
+    throw new CustomError("post id not found ", 400);
   }
   const post = await Post.findById(postId);
   if (!post) {
@@ -27,6 +27,7 @@ export const getComments = asyncHandler(async (req, res) => {
   // send to fe
   res.status(200).json({ comments });
 });
+
 export const createComment = asyncHandler(async (req, res) => {
   // postId , content , userId,
   const { clerkId } = getAuth(req);
@@ -36,8 +37,8 @@ export const createComment = asyncHandler(async (req, res) => {
   if (!clerkId || !content || !postId) {
     throw new CustomError("missing filed error", 404);
   }
-  const user = await User.findOne({ clerkId });
-  const post = await Post.findById(postId);
+  const user = await User.findOne({ clerkId }).lean();
+  const post = await Post.findById(postId).lean();
 
   if (!post || !user) {
     throw new CustomError("user or post not found");
@@ -53,7 +54,7 @@ export const createComment = asyncHandler(async (req, res) => {
     $push: { comments: comment._id },
   });
   // create notification
-  if (post.user.toString() !== user._id.toString) {
+  if (post.user.toString() !== user._id.toString()) {
     await Notification.create({
       from: user._id,
       to: post.user,
@@ -71,23 +72,23 @@ export const deleteComment = asyncHandler(async (req, res) => {
   const { clerkId } = getAuth(req);
 
   // check for comment and post and user
-  const user = await User.findOne({ clerkId });
-  const comment = await Comment.findById(commentId);
+  const user = await User.findOne({ clerkId }).lean();
+  const comment = await Comment.findById(commentId).lean();
 
   if (!user || !comment) {
     throw new CustomError("user or comment not found", 404);
   }
   // check if its user who commented
   if (comment.user.toString() !== user._id.toString()) {
-    throw new CustomError("you can only delete your comment");
+    throw new CustomError("you can only delete your comment", 403);
   }
   // remove comment from post
   await Post.findByIdAndUpdate(comment.post, {
-    $pull: { commnets: commentId },
+    $pull: { comments: commentId },
   });
 
   // delete the comment
-  await Comment.findByIdAndUpdate(commentId);
+  await Comment.findByIdAndDelete(commentId);
 
   // send message to frontend
   res.status(200).json({ message: "comment deleted" });
